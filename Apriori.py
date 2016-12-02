@@ -12,7 +12,7 @@ DEBUG = False
 
 def write_output(msg):
 	with open(DIR + out_put_file_str, 'a') as f:
-		f.write(msg)
+		f.write(msg+'\n')
 	return
 
 def generate_L1(transactions,ts):
@@ -201,14 +201,25 @@ if len(sys.argv) == 4:
 		print('Test:')
 		print(itemset_list)
 	# print out result for testing
+	conf_list = []
 	if True:#DEBUG
 		print('\n\nAssociation Rules:')
 		for rule in rule_list:
 			item_list = list(rule[0])
 			item_list.append(rule[1])
 			item_list = sorted(item_list)
+			conf_list.append( (rule, float(itemset_dict[tuple(item_list)])/len(transactions), conf_dict[rule]) )
 			print(str(list(rule[0]))+' => '+str([rule[1]])+'\tsupport: '+str(float(itemset_dict[tuple(item_list)])/len(transactions))+ ',\tconfidence '+str(conf_dict[rule]) )
 	# Out put the results
+	# sort the itemset_list
+	itemset_list = sorted(itemset_list,key = lambda x: x[1],reverse=True)
+	conf_list = sorted(conf_list, key = lambda x: x[2],reverse=True)
+	write_output('==Frequent itemsets (min_sup=%d%%)' %int(ts*100))
+	for itemset in itemset_list:
+		write_output(str(list(itemset[0]))+', %d%%'%int(itemset[1]*100) )
+	write_output('\n==High-confidence association rules (min_conf=%d%%)'%int(tc*100))
+	for rule in conf_list:
+		write_output(str(list(rule[0][0]))+' => '+str([rule[0][1]])+' (Conf: %d%%, Supp: %d%%)'%( int(rule[2]*100),int(rule[1]*100)  ))
 	print('Result generated')
 else:
 	print("Give all 4 Parameters as below")
