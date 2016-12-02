@@ -14,7 +14,6 @@ def write_output(msg):
 	with open(DIR + out_put_file_str, 'a') as f:
 		f.write(msg)
 
-
 def generate_L1(transactions,ts):
 	L1_cnt = dict()
 	min = ts*len(transactions)
@@ -34,6 +33,7 @@ def generate_L1(transactions,ts):
 	L1_list = sorted(L1_list) # sorted by the item name.
 	return L1_list, L1_cnt # not that un qualified items are not deleted yet. 
 
+# 
 def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 	if DEBUG:
 		print('')
@@ -123,7 +123,6 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 	Lk__1_dict.insert(0,Lk_dict)
 	 # a list of Lk
 	return Lk__1_list, Lk__1_dict
-
 
 def eliminate_by_confidence(transactions, itemset_lists, tc):
 	# compute the confidence first
