@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from pprint import pprint
 import sys
-
+import csv
 
 #Global Vars
 DIR = './'
@@ -145,19 +145,30 @@ def eliminate_by_confidence(transactions, itemset_lists, tc):
 						if RHS_item in trans_set:
 							RHS_cnt += 1
 				conf_dict[(tuple(LHS),RHS_item)] = float(RHS_cnt)/LHS_cnt
+				if True:#DEBUG
+					print( str((tuple(LHS),RHS_item))+' '+str(RHS_cnt)+'/'+str(LHS_cnt) )
 	rule_list = []
 	for rule in conf_dict: # rule is (tuple(LHS),RHS_item)
 		if conf_dict[rule] >= tc:
 			rule_list.append(rule)
 	return rule_list,conf_dict
 
+def read_baskets(data_file_str):
+	transactions=[]
+	csvfile = open(data_file_str, 'rb')
+	reader = csv.reader(csvfile, delimiter=',')
+	for row in reader:
+		if 'NA' in row:
+			row.remove('NA')
+		transactions.append(row)
+	return transactions
+
 if len(sys.argv) == 4:
-	
 	data_file_str = sys.argv[1]
 	tc = float(sys.argv[3])
 	ts = float(sys.argv[2])	
-	transactions = [['pen','ink','diary','soap'], ['pen','ink','diary'], ['pen','diary'], ['pen','ink','soap']]
-	
+	# transactions = [['pen','ink','diary','soap'], ['pen','ink','diary'], ['pen','diary'], ['pen','ink','soap']]
+	transactions = read_baskets(data_file_str)
 	# combine all big itemsets into a big list and sort them by support
 	# sort the list of items by 
 	L1_list,L1_dict = generate_L1(transactions,ts)
