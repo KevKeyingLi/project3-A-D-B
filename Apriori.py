@@ -150,3 +150,66 @@ def eliminate_by_confidence(transactions, itemset_lists, tc):
 		if conf_dict[rule] >= tc:
 			rule_list.append(rule)
 	return rule_list,conf_dict
+
+if len(sys.argv) == 4:
+	
+	data_file_str = sys.argv[1]
+	tc = float(sys.argv[3])
+	ts = float(sys.argv[2])	
+	transactions = [['pen','ink','diary','soap'], ['pen','ink','diary'], ['pen','diary'], ['pen','ink','soap']]
+	
+	# combine all big itemsets into a big list and sort them by support
+	# sort the list of items by 
+	L1_list,L1_dict = generate_L1(transactions,ts)
+	print('Finished generating L1')
+	if DEBUG:
+		print("L1 dict")
+		print(L1_dict)
+		print("L1 list")
+		print(L1_list)
+	itemset_lists, itemset_maps = generate_Lk(transactions, L1_dict, L1_list,ts)
+	itemset_lists.insert(0,L1_list)
+	itemset_lists.insert(0,[])
+	itemset_maps.insert(0,L1_dict)
+	itemset_maps.insert(0,{})
+	print('Finished generating Lks')
+	# itemset_lists[i] is the large itemsets of length i that qualifies the support
+	# itemset_maps[i] contains all the itemsets generated from large subset, and there count
+	if DEBUG:
+		print('\nTest: Large itemsets')
+		print(itemset_lists)
+		print(itemset_maps)
+	rule_list, conf_dict = eliminate_by_confidence(transactions, itemset_lists, tc)# return a list of lists and a list of dictionaries.
+	print('Finished confidence elimination')
+	if DEBUG:
+		print('\nTest: Association rules')
+		print(rule_list)
+		print('')
+		print(conf_dict)
+	# merge the dicts in itemset_maps together
+	itemset_dict = dict()
+	for itemset_map in itemset_maps:
+		itemset_dict.update(itemset_map)
+	# merge large itemset_lists
+	itemset_list = [] #each item is a tuple of (itemset, support) and sorted by support
+	for itemsets in itemset_lists:
+		if len(itemsets) == 0:
+			continue
+		for itemset in itemsets:
+			itemset_list.append((itemset,float(itemset_dict[itemset])/len(transactions) ))
+	if DEBUG:
+		print('Test:')
+		print(itemset_list)
+	# print out result for testing
+	if True:#DEBUG
+		print('\n\nAssociation Rules:')
+		for rule in rule_list:
+			item_list = list(rule[0])
+			item_list.append(rule[1])
+			item_list = sorted(item_list)
+			print(str(list(rule[0]))+' => '+str([rule[1]])+'\tsupport: '+str(float(itemset_dict[tuple(item_list)])/len(transactions))+ ',\tconfidence '+str(conf_dict[rule]) )
+	# Out put the results
+	print('Result generated')
+else:
+	print("Give all 4 Parameters as below")
+	print('Usage: python Apriori.py <dataset_file_name> <t_supp> <t_conf>')
