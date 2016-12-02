@@ -124,3 +124,29 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 	 # a list of Lk
 	return Lk__1_list, Lk__1_dict
 
+
+def eliminate_by_confidence(transactions, itemset_lists, tc):
+	# compute the confidence first
+	conf_dict=dict()
+	for itemset_list in itemset_lists:
+		if len(itemset_list) == 0 or len(itemset_list[0]) == 1:
+			continue
+		for itemset in itemset_list:
+			for RHS_item in itemset:
+				LHS_cnt = 0
+				RHS_cnt = 0
+				# remove this item
+				LHS = list(itemset)
+				LHS.remove(RHS_item)
+				for trans in transactions:
+					trans_set = set(trans)
+					if trans_set >= set(LHS):# if the transaction contains the LHS
+						LHS_cnt += 1
+						if RHS_item in trans_set:
+							RHS_cnt += 1
+				conf_dict[(tuple(LHS),RHS_item)] = float(RHS_cnt)/LHS_cnt
+	rule_list = []
+	for rule in conf_dict: # rule is (tuple(LHS),RHS_item)
+		if conf_dict[rule] >= tc:
+			rule_list.append(rule)
+	return rule_list,conf_dict
