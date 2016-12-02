@@ -13,6 +13,7 @@ DEBUG = False
 def write_output(msg):
 	with open(DIR + out_put_file_str, 'a') as f:
 		f.write(msg)
+	return
 
 def generate_L1(transactions,ts):
 	L1_cnt = dict()
