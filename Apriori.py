@@ -9,15 +9,16 @@ DIR = './'
 out_put_file_str = 'output.txt'
 
 DEBUG = False
-
+# for writing lines into the output file
 def write_output(msg):
 	with open(DIR + out_put_file_str, 'a') as f:
 		f.write(msg+'\n')
 	return
 
+# to generate the L1s
 def generate_L1(transactions,ts):
 	L1_cnt = dict()
-	min = ts*len(transactions)
+	min = ts*len(transactions)# minimum number of counts to satisfy support requirement
 	for trans in transactions:
 		for item in trans:
 			if (item,) in L1_cnt:
@@ -29,27 +30,34 @@ def generate_L1(transactions,ts):
 	for item in L1_cnt:
 		if L1_cnt[item]>= min:
 			L1_list.append(item)
-	# print('***')
-	# print(L1_list)
-	L1_list = sorted(L1_list) # sorted by the item name.
-	return L1_list, L1_cnt # not that un qualified items are not deleted yet. 
+	
+	L1_list = sorted(L1_list) 
+	# return two things:
+	# L1_list a list of the large itemsets [(,),(,),(,)]
+	# L1_cnt a dictionary that contains the count of itemsets {(,):int,(,):int}
+	return L1_list, L1_cnt 
 
-# 
+# Lk_1 means Lk-1, Lk__1 means Lk+1
+# generate_Lk is a recursion call from Lk-1 to Lk, and record the results for each level.
 def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 	if DEBUG:
 		print('')
-	cand = set()
-	min = ts*len(transactions)
-
+	cand = set() # a set to maintain all the candidate itemsets: set((,),(,))
+	min = ts*len(transactions) # minimum number appreance to satisfy the support requirement
+	# Lk_1_map is a dictionary containing the itemsets from last round(Lk-1) and their support
+	# Lk_1_list contains a list of the large itemsets from last round(Lk-1)
 	# Lk should be sorted by from inside to out side by the item name
 	for i in range(len(Lk_1_list)):
 		if len(Lk_1_list[i]) <= 0:
 			raise Exception()
 		elif len(Lk_1_list[i]) == 1:
+			# if the last round is the L1 round
 			for j in range(i+1,len(Lk_1_list)):
 				cand.add((Lk_1_list[i][0],Lk_1_list[j][0]))
 		else:
+			# if the last round is not L1 round
 			for j in range(i+1,len(Lk_1_list)):
+				# since the itemsets are sorted, we can compare each itemset with the next few itemsets
 				if Lk_1_list[i][-2] == Lk_1_list[j][-2]:
 					t_list = list(Lk_1_list[i])
 					t_list.append(Lk_1_list[j][-1])
@@ -63,8 +71,8 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 		if DEBUG:
 			print('Test: set is empty time to return')
 		return [],[]
-	# prune
-	to_remove = []
+	# prune step
+	to_remove = []# track what itemsets to remove
 	for itemset in cand:
 		#if DEBUG:
 		# 	print('Test: itemset')
@@ -85,12 +93,15 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 		print('Test: candidate set after prune, time to return')
 		print(cand)
 	# finished prune
-
+	# if the candidate set is empty after prune then we can end the recursion
 	if len(cand) == 0:
 		if DEBUG:
 			print('Test: set became empty after prune')
 		return [],[]
-	Lk_dict = dict()
+	# Now eliminate itemsets by support
+	Lk_dict = dict() #{():int,():int}
+	# a dictionary of itemsets with size of k, and their number of appearance.
+	# For each transaction see if any of the itemsets are in it, if so add one count for that itemset.
 	for trans in transactions:
 		for itemset in cand:
 			qualified = True
@@ -105,7 +116,7 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 					Lk_dict[itemset] += 1
 				else:
 					Lk_dict[itemset] = 1
-	Lk_list = []
+	Lk_list = []# a list of Large Itemsets [(,),(,)]
 	for item in Lk_dict:
 		if Lk_dict[item]>= min:
 			Lk_list.append(item)
@@ -116,15 +127,17 @@ def generate_Lk(transactions, Lk_1_map, Lk_1_list,ts):
 		print("Test: ")
 		print(Lk_dict)
 		print(Lk_list)
-	# return Lk_list, Lk_dict#
+	# recursive call of next level k+1
 	Lk__1_list, Lk__1_dict = generate_Lk(transactions, Lk_dict, Lk_list,ts)
-
+	# Lk__1_list is a list of lists of itemsets with size larger than k. [[(,),(,)],[(,),(,)]]
+	# Lk__1_map is a list of dictionaries corresponding to the itemsets and their count of appearance. [{(,):int,(,):int},{(,):int,(,):int}]
 	# return a list of lk list and a list of lk dictionaries
 	Lk__1_list.insert(0, Lk_list)
 	Lk__1_dict.insert(0,Lk_dict)
-	 # a list of Lk
+	# return the two lists for previous recursion or initial call.
 	return Lk__1_list, Lk__1_dict
 
+# This method eliminates the unqualified rules by confidence.
 def eliminate_by_confidence(transactions, itemset_lists, tc):
 	# compute the confidence first
 	conf_dict=dict()
@@ -135,7 +148,7 @@ def eliminate_by_confidence(transactions, itemset_lists, tc):
 			for RHS_item in itemset:
 				LHS_cnt = 0
 				RHS_cnt = 0
-				# remove this item
+				# remove this RHS item
 				LHS = list(itemset)
 				LHS.remove(RHS_item)
 				for trans in transactions:
@@ -145,7 +158,8 @@ def eliminate_by_confidence(transactions, itemset_lists, tc):
 						if RHS_item in trans_set:
 							RHS_cnt += 1
 				conf_dict[(tuple(LHS),RHS_item)] = float(RHS_cnt)/LHS_cnt
-				if True:#DEBUG
+				if DEBUG:
+					print('Test: ')
 					print( str((tuple(LHS),RHS_item))+' '+str(RHS_cnt)+'/'+str(LHS_cnt) )
 	rule_list = []
 	for rule in conf_dict: # rule is (tuple(LHS),RHS_item)
@@ -153,6 +167,7 @@ def eliminate_by_confidence(transactions, itemset_lists, tc):
 			rule_list.append(rule)
 	return rule_list,conf_dict
 
+# This method read in the csv file and returns the data as a list of lists
 def read_baskets(data_file_str):
 	transactions=[]
 	csvfile = open(data_file_str, 'rb')
@@ -164,6 +179,8 @@ def read_baskets(data_file_str):
 	return transactions
 
 if len(sys.argv) == 4:
+	with open(DIR + out_put_file_str, 'w') as f:
+		f.write('\n')
 	data_file_str = sys.argv[1]
 	tc = float(sys.argv[3])
 	ts = float(sys.argv[2])	
@@ -179,6 +196,7 @@ if len(sys.argv) == 4:
 		print("L1 list")
 		print(L1_list)
 	itemset_lists, itemset_maps = generate_Lk(transactions, L1_dict, L1_list,ts)
+	# insert empty list and L1_list so that the index of each Lk_list is k
 	itemset_lists.insert(0,L1_list)
 	itemset_lists.insert(0,[])
 	itemset_maps.insert(0,L1_dict)
@@ -197,12 +215,13 @@ if len(sys.argv) == 4:
 		print(rule_list)
 		print('')
 		print(conf_dict)
+	# Since the itemset_dict and itemset_list are lists of itemsets of different k, we want to merge them to generate the output.
 	# merge the dicts in itemset_maps together
 	itemset_dict = dict()
 	for itemset_map in itemset_maps:
 		itemset_dict.update(itemset_map)
 	# merge large itemset_lists
-	itemset_list = [] #each item is a tuple of (itemset, support) and sorted by support
+	itemset_list = [] # each item is a tuple of (itemset, support) and sorted by support
 	for itemsets in itemset_lists:
 		if len(itemsets) == 0:
 			continue
@@ -211,17 +230,18 @@ if len(sys.argv) == 4:
 	if DEBUG:
 		print('Test:')
 		print(itemset_list)
-	# print out result for testing
-	conf_list = []
-	if True:#DEBUG
+
+	conf_list = [] # a list of tuples, (rule, support, confidence) where rule is a tuple(LHS, RHS)
+	if DEBUG:
 		print('\n\nAssociation Rules:')
-		for rule in rule_list:
-			item_list = list(rule[0])
-			item_list.append(rule[1])
-			item_list = sorted(item_list)
-			conf_list.append( (rule, float(itemset_dict[tuple(item_list)])/len(transactions), conf_dict[rule]) )
+	for rule in rule_list:
+		item_list = list(rule[0])
+		item_list.append(rule[1])
+		item_list = sorted(item_list)
+		conf_list.append( (rule, float(itemset_dict[tuple(item_list)])/len(transactions), conf_dict[rule]) )
+		if DEBUG:
 			print(str(list(rule[0]))+' => '+str([rule[1]])+'\tsupport: '+str(float(itemset_dict[tuple(item_list)])/len(transactions))+ ',\tconfidence '+str(conf_dict[rule]) )
-	# Out put the results
+	# Output the results
 	# sort the itemset_list
 	itemset_list = sorted(itemset_list,key = lambda x: x[1],reverse=True)
 	conf_list = sorted(conf_list, key = lambda x: x[2],reverse=True)
